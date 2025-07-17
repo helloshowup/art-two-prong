@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import List, Tuple
 import json
 
+from .openai_client import generate_image
+
 import typer
 
 from .orchestrator import process_folder
@@ -79,6 +81,38 @@ def run(
     )
     if verbose:
         typer.echo("Done")
+
+
+@app.command("generate-image")
+def generate_image_cmd(
+    prompt_file: Path = typer.Argument(
+        ..., exists=True, file_okay=True, dir_okay=False, readable=True
+    ),
+    model: str = typer.Option(
+        "dall-e-3", "--model", help="OpenAI model for image generation"
+    ),
+    size: str = typer.Option(
+        "1024x1024", "--size", help="Image size, e.g. 1024x1024"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Generate an image using a filename and prompt from *prompt_file*."""
+    text = prompt_file.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines()
+    if not lines:
+        raise typer.BadParameter("Prompt file is empty")
+    filename = lines[0].strip()
+    prompt = "\n".join(lines[1:]).strip()
+    if not filename:
+        raise typer.BadParameter("Missing filename on first line")
+    if not prompt:
+        raise typer.BadParameter("Missing prompt text")
+    if verbose:
+        typer.echo(f"Generating {filename} with model {model}")
+    image_bytes = generate_image(prompt, model=model, size=size)
+    Path(filename).write_bytes(image_bytes)
+    if verbose:
+        typer.echo(f"Wrote {filename}")
 
 
 if __name__ == "__main__":  # pragma: no cover

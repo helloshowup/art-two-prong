@@ -25,6 +25,7 @@ def test_run_dry_run(monkeypatch, tmp_path: Path):
     result = runner.invoke(
         cli.app,
         [
+            "run",
             str(tmp_path),
             "--dry-run",
             "--prompts",
@@ -66,6 +67,7 @@ def test_run_max_tokens(monkeypatch, tmp_path: Path):
     result = runner.invoke(
         cli.app,
         [
+            "run",
             str(tmp_path),
             "--prompts",
             "tests/data/p1.txt",
@@ -99,7 +101,7 @@ def test_run_auto_prompt_dir(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(cli, "__file__", str(dummy_cli_path))
 
     runner = CliRunner()
-    result = runner.invoke(cli.app, [str(docs), "--verbose"])
+    result = runner.invoke(cli.app, ["run", str(docs), "--verbose"])
 
     assert result.exit_code == 0, result.stdout
     assert "pass 3/3" in result.stdout
@@ -133,6 +135,7 @@ def test_run_regex_json(monkeypatch, tmp_path: Path):
     result = runner.invoke(
         cli.app,
         [
+            "run",
             str(tmp_path),
             "--prompts",
             "tests/data/p1.txt",
@@ -143,3 +146,27 @@ def test_run_regex_json(monkeypatch, tmp_path: Path):
 
     assert result.exit_code == 0, result.stdout
     assert captured["regex_json"] == regex_path
+
+def test_generate_image_command(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    generated = {}
+    def fake_generate_image(prompt: str, model: str = "dall-e-3", size: str = "1024x1024"):
+        generated["prompt"] = prompt
+        generated["model"] = model
+        generated["size"] = size
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        prompt_file = Path("p.txt")
+        prompt_file.write_text("out.png\nA cat in space")
+        result = runner.invoke(cli.app, ["generate-image", str(prompt_file)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (Path("out.png").read_bytes()) == b"imgbytes"
+    assert generated["prompt"] == "A cat in space"
