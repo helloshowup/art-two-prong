@@ -63,16 +63,15 @@ def generate_image(
     prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
 ) -> bytes:
     """Return image bytes generated from *prompt* using the OpenAI image API."""
-    # newer OpenAI client doesn't accept ``response_format``; default returns URLs
-    resp = openai.Image.create(
+    resp = _client.images.generate(
         prompt=prompt,
         model=model,
         size=size,
     )
-    node = resp["data"][0]
-    if "url" in node:
+    node = resp.data[0]
+    if getattr(node, "url", None):
         import requests
-        return requests.get(node["url"]).content
-    if "b64_json" in node:
-        return base64.b64decode(node["b64_json"])
+        return requests.get(node.url).content
+    if getattr(node, "b64_json", None):
+        return base64.b64decode(node.b64_json)
     raise RuntimeError("No image data in API response")
