@@ -5,6 +5,7 @@ from typing import List, Tuple
 import json
 
 from .openai_client import generate_image
+from .markdown_parser import parse_markdown_image_entries
 
 import typer
 
@@ -151,6 +152,30 @@ def generate_images_cmd(
             Path(filename).write_bytes(image_bytes)
             if verbose:
                 typer.echo(f"  Wrote {filename}")
+
+
+@app.command("generate-images-from-docs")
+def generate_images_from_docs_cmd(
+    docs_folder: Path = typer.Argument(
+        ..., exists=True, file_okay=False, dir_okay=True
+    ),
+    model: str = typer.Option(
+        "dall-e-3", "--model", help="OpenAI model for image generation"
+    ),
+    size: str = typer.Option("1024x1024", "--size", help="Image size, e.g. 1024x1024"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Generate images based on Markdown files under *docs_folder*."""
+    entries = parse_markdown_image_entries(docs_folder)
+    for entry in entries:
+        filename = entry["expected_filename"]
+        prompt = entry["summary"]
+        if verbose:
+            typer.echo(f"Generating {filename}")
+        image_bytes = generate_image(prompt, model=model, size=size)
+        Path(filename).write_bytes(image_bytes)
+        if verbose:
+            typer.echo(f"Wrote {filename}")
 
 
 if __name__ == "__main__":  # pragma: no cover
