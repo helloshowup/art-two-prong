@@ -59,7 +59,9 @@ def send_prompt(
     return _chat_request(messages, model=model, temperature=1, max_tokens=max_tokens)
 
 
-def generate_image(prompt: str, model: str = "dall-e-3", size: str = "1024x1024") -> bytes:
+def generate_image(
+    prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+) -> bytes:
     """Return image bytes generated from *prompt* using the OpenAI image API."""
     resp = _client.images.generate(
         prompt=prompt,

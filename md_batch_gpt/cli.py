@@ -91,9 +91,7 @@ def generate_image_cmd(
     model: str = typer.Option(
         "dall-e-3", "--model", help="OpenAI model for image generation"
     ),
-    size: str = typer.Option(
-        "1024x1024", "--size", help="Image size, e.g. 1024x1024"
-    ),
+    size: str = typer.Option("1024x1024", "--size", help="Image size, e.g. 1024x1024"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """Generate an image using a filename and prompt from *prompt_file*."""
@@ -113,6 +111,46 @@ def generate_image_cmd(
     Path(filename).write_bytes(image_bytes)
     if verbose:
         typer.echo(f"Wrote {filename}")
+
+
+@app.command("generate-images")
+def generate_images_cmd(
+    json_files: List[Path] = typer.Argument(
+        ..., exists=True, file_okay=True, dir_okay=False, readable=True
+    ),
+    model: str = typer.Option(
+        "dall-e-3", "--model", help="OpenAI model for image generation"
+    ),
+    size: str = typer.Option("1024x1024", "--size", help="Image size, e.g. 1024x1024"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Generate images for each entry in one or more JSON files."""
+    for json_file in json_files:
+        if verbose:
+            typer.echo(f"Processing {json_file}")
+        try:
+            entries = json.loads(
+                json_file.read_text(encoding="utf-8", errors="replace")
+            )
+        except json.JSONDecodeError as exc:  # pragma: no cover - error path
+            raise typer.BadParameter(f"Invalid JSON in {json_file}: {exc}") from exc
+        if not isinstance(entries, list):
+            raise typer.BadParameter(f"{json_file} does not contain a list")
+        for idx, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                raise typer.BadParameter(f"Entry {idx} in {json_file} is not an object")
+            filename = entry.get("expected_filename")
+            prompt = entry.get("summary")
+            if not filename or not prompt:
+                raise typer.BadParameter(
+                    f"Entry {idx} in {json_file} missing expected_filename or summary"
+                )
+            if verbose:
+                typer.echo(f"  Generating {filename}")
+            image_bytes = generate_image(prompt, model=model, size=size)
+            Path(filename).write_bytes(image_bytes)
+            if verbose:
+                typer.echo(f"  Wrote {filename}")
 
 
 if __name__ == "__main__":  # pragma: no cover

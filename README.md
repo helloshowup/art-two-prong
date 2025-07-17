@@ -18,6 +18,11 @@ Run the batch processor against the `docs` folder using the provided prompts:
 poetry run mdgpt run docs --prompts prompts/first.txt prompts/second.txt
 ```
 
+Generate images from JSON description files:
+```bash
+poetry run mdgpt generate-images images1.json images2.json --model dall-e-3 --size 1024x1024
+```
+
 ## .env Setup
 
 The application requires an OpenAI API key. Create a `.env` file in the project

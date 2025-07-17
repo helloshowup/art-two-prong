@@ -147,13 +147,17 @@ def test_run_regex_json(monkeypatch, tmp_path: Path):
     assert result.exit_code == 0, result.stdout
     assert captured["regex_json"] == regex_path
 
+
 def test_generate_image_command(monkeypatch, tmp_path: Path):
     monkeypatch.setenv("OPENAI_API_KEY", "dummy")
 
     cli = import_cli()
 
     generated = {}
-    def fake_generate_image(prompt: str, model: str = "dall-e-3", size: str = "1024x1024"):
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
         generated["prompt"] = prompt
         generated["model"] = model
         generated["size"] = size
@@ -165,8 +169,54 @@ def test_generate_image_command(monkeypatch, tmp_path: Path):
     with runner.isolated_filesystem(temp_dir=tmp_path):
         prompt_file = Path("p.txt")
         prompt_file.write_text("out.png\nA cat in space")
-        result = runner.invoke(cli.app, ["generate-image", str(prompt_file)])
+        result = runner.invoke(
+            cli.app,
+            ["generate-image", str(prompt_file), "--model", "m1", "--size", "256x256"],
+        )
 
-    assert result.exit_code == 0, result.stdout
-    assert (Path("out.png").read_bytes()) == b"imgbytes"
-    assert generated["prompt"] == "A cat in space"
+        assert result.exit_code == 0, result.stdout
+        assert Path("out.png").read_bytes() == b"imgbytes"
+        assert generated == {
+            "prompt": "A cat in space",
+            "model": "m1",
+            "size": "256x256",
+        }
+
+
+def test_generate_images_command(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    j1 = tmp_path / "f1.json"
+    j1.write_text('[{"expected_filename": "a.png", "summary": "A"}]')
+    j2 = tmp_path / "f2.json"
+    j2.write_text(
+        '[{"expected_filename": "b.png", "summary": "B"}, {"expected_filename": "c.png", "summary": "C"}]'
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            ["generate-images", str(j1), str(j2), "--model", "m", "--size", "256x256"],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("a.png").read_bytes() == b"imgbytes"
+        assert Path("b.png").read_bytes() == b"imgbytes"
+        assert Path("c.png").read_bytes() == b"imgbytes"
+
+    prompts = [call[0] for call in calls]
+    assert prompts == ["A", "B", "C"]
+    assert all(call[1:] == ("m", "256x256") for call in calls)
