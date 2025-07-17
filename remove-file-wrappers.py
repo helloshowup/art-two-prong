@@ -1,8 +1,8 @@
 import os
 
 def clean_file_wrappers(folder_path):
-    START_TOKENS = {"'''", '--- FILE START ---', '```markdown'}
-    END_TOKENS = {"'''", '--- FILE END ---', '```'}
+    START_TOKENS = {"'''", '```json', '```markdown'}
+    END_TOKENS = {'```'}
 
     for filename in os.listdir(folder_path):
         if filename.endswith('.md'):
