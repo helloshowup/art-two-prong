@@ -30,9 +30,11 @@ The prompt text comes from `summary`, and the resulting image is saved to
 poetry run mdgpt generate-images images1.json images2.json --model gpt-image-1 --size 1024x1024
 ```
 
-Images can also be generated directly from Markdown files. Each document can
-either begin with YAML front-matter providing `expected_filename` and
-`summary`, or contain a JSON code block with one or more such entries:
+Images can also be generated directly from Markdown or JSON files. Markdown
+documents may begin with YAML front-matter providing `expected_filename` and
+`summary`, or contain a JSON code block with one or more such entries. Any
+`*.json` files found in the same folder are treated as specification objects and
+used to build the prompt.
 
 ```markdown
 ---

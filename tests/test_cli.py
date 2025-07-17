@@ -402,3 +402,48 @@ def test_generate_images_from_docs_file_start(monkeypatch, tmp_path: Path):
 
     assert calls == [("file start", "m", "256x256")]
 
+
+def test_generate_images_from_docs_json_file(monkeypatch, tmp_path: Path):
+    """JSON specification files should be loaded directly."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "spec.json").write_text(
+        '{"lesson_number": 1, "lesson_title": "Intro", "alt_text": "alt", "expected_filename": "spec.png", "summary": "desc"}'
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            [
+                "generate-images-from-docs",
+                str(docs),
+                "--model",
+                "m",
+                "--size",
+                "256x256",
+            ],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("spec.png").read_bytes() == b"imgbytes"
+
+    assert len(calls) == 1
+    assert calls[0][1:] == ("m", "256x256")
+    assert "spec.png" in calls[0][0]
+    assert "desc" in calls[0][0]
+
