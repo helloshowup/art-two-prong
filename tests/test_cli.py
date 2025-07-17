@@ -447,3 +447,49 @@ def test_generate_images_from_docs_json_file(monkeypatch, tmp_path: Path):
     assert "spec.png" in calls[0][0]
     assert "desc" in calls[0][0]
 
+
+def test_generate_images_from_docs_json_list(monkeypatch, tmp_path: Path):
+    """JSON files containing lists of entries should all be processed."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "specs.json").write_text(
+        '[{"expected_filename": "a.png", "summary": "A"},'
+        ' {"expected_filename": "b.png", "summary": "B"}]'
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            [
+                "generate-images-from-docs",
+                str(docs),
+                "--model",
+                "m",
+                "--size",
+                "256x256",
+            ],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("a.png").read_bytes() == b"imgbytes"
+        assert Path("b.png").read_bytes() == b"imgbytes"
+
+    prompts = [c[0] for c in calls]
+    assert prompts == ["A", "B"]
+    assert all(c[1:] == ("m", "256x256") for c in calls)
+
