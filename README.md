@@ -28,6 +28,21 @@ The prompt text comes from `summary`, and the resulting image is saved to
 
 ```bash
 poetry run mdgpt generate-images images1.json images2.json --model gpt-image-1 --size 1024x1024
+```
+
+Images can also be generated directly from Markdown files. Each document must
+begin with YAML front-matter providing `expected_filename` and `summary`:
+
+```markdown
+---
+expected_filename: example.png
+summary: An example scene
+---
+```
+
+```bash
+poetry run mdgpt generate-images-from-docs docs --model gpt-image-1 --size 1024x1024
+```
 
 
 ## .env Setup

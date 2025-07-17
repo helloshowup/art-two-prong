@@ -254,3 +254,53 @@ def test_generate_images_extra_fields(monkeypatch, tmp_path: Path):
         assert Path("img.png").read_bytes() == b"imgbytes"
 
     assert captured == [("An image", "gpt-image-1")]
+
+
+def test_generate_images_from_docs(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "one.md").write_text(
+        """---
+expected_filename: one.png
+summary: first image
+---
+content
+"""
+    )
+    (docs / "two.md").write_text(
+        """---
+expected_filename: two.png
+summary: second image
+---
+text
+"""
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            ["generate-images-from-docs", str(docs), "--model", "m", "--size", "256x256"],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("one.png").read_bytes() == b"imgbytes"
+        assert Path("two.png").read_bytes() == b"imgbytes"
+
+    prompts = [c[0] for c in calls]
+    assert prompts == ["first image", "second image"]
+    assert all(c[1:] == ("m", "256x256") for c in calls)
