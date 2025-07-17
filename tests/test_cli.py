@@ -355,3 +355,50 @@ def test_generate_images_from_docs_json_block(monkeypatch, tmp_path: Path):
         assert Path("j.png").read_bytes() == b"imgbytes"
 
     assert calls == [("json entry", "m", "256x256")]
+
+
+def test_generate_images_from_docs_file_start(monkeypatch, tmp_path: Path):
+    """Files with FILE START markers should be parsed using the JSON block."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "entry.md").write_text(
+        """--- FILE START ---
+```json
+[{"expected_filename": "fs.png", "summary": "file start"}]
+```
+--- FILE END ---"""
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            [
+                "generate-images-from-docs",
+                str(docs),
+                "--model",
+                "m",
+                "--size",
+                "256x256",
+            ],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("fs.png").read_bytes() == b"imgbytes"
+
+    assert calls == [("file start", "m", "256x256")]
+
