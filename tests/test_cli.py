@@ -294,7 +294,14 @@ text
     with runner.isolated_filesystem(temp_dir=tmp_path):
         result = runner.invoke(
             cli.app,
-            ["generate-images-from-docs", str(docs), "--model", "m", "--size", "256x256"],
+            [
+                "generate-images-from-docs",
+                str(docs),
+                "--model",
+                "m",
+                "--size",
+                "256x256",
+            ],
         )
 
         assert result.exit_code == 0, result.stdout
@@ -304,3 +311,47 @@ text
     prompts = [c[0] for c in calls]
     assert prompts == ["first image", "second image"]
     assert all(c[1:] == ("m", "256x256") for c in calls)
+
+
+def test_generate_images_from_docs_json_block(monkeypatch, tmp_path: Path):
+    """JSON blocks at the beginning of Markdown files should be processed."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        calls.append((prompt, model, size))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "json.md").write_text(
+        """```json
+[{"expected_filename": "j.png", "summary": "json entry"}]
+```"""
+    )
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app,
+            [
+                "generate-images-from-docs",
+                str(docs),
+                "--model",
+                "m",
+                "--size",
+                "256x256",
+            ],
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("j.png").read_bytes() == b"imgbytes"
+
+    assert calls == [("json entry", "m", "256x256")]
