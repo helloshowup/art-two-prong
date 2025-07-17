@@ -52,6 +52,7 @@ def test_run_max_tokens(monkeypatch, tmp_path: Path):
         prompt_paths: list[Path],
         model: str,
         max_tokens: int | None = None,
+        regex_json: Path | None = None,
         dry_run: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -102,3 +103,43 @@ def test_run_auto_prompt_dir(monkeypatch, tmp_path: Path):
 
     assert result.exit_code == 0, result.stdout
     assert "pass 3/3" in result.stdout
+
+
+def test_run_regex_json(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    captured = {}
+
+    def fake_process_folder(
+        folder: Path,
+        prompt_paths: list[Path],
+        model: str,
+        max_tokens: int | None = None,
+        regex_json: Path | None = None,
+        dry_run: bool = False,
+        verbose: bool = False,
+    ) -> None:
+        captured["regex_json"] = regex_json
+
+    monkeypatch.setattr(cli, "process_folder", fake_process_folder)
+
+    (tmp_path / "a.md").write_text("A")
+    regex_path = tmp_path / "regex.json"
+    regex_path.write_text("{}")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.app,
+        [
+            str(tmp_path),
+            "--prompts",
+            "tests/data/p1.txt",
+            "--regex-json",
+            str(regex_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["regex_json"] == regex_path

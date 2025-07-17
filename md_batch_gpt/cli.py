@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List, Tuple
+import json
 
 import typer
 
@@ -32,6 +33,14 @@ def run(
     max_tokens: int | None = typer.Option(
         None, "--max-tokens", help="Max tokens for completion"
     ),
+    regex_json: Path = typer.Option(
+        None,
+        "--regex-json",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        help="Path to JSON file of regex patterns",
+    ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
@@ -57,11 +66,14 @@ def run(
         typer.echo(f"Folder: {folder}")
         typer.echo(f"Prompts: {', '.join(str(p) for p in prompt_list)}")
         typer.echo(f"Model: {model} Max tokens: {max_tokens}")
+        if regex_json:
+            typer.echo(f"Regex JSON: {regex_json}")
     process_folder(
         folder,
         prompt_list,
         model=model,
         max_tokens=max_tokens,
+        regex_json=regex_json,
         dry_run=dry_run,
         verbose=verbose,
     )

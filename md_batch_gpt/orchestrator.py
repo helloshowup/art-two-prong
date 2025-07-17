@@ -13,6 +13,7 @@ def process_folder(
     prompt_paths: List[Path],
     model: str,
     max_tokens: int | None = None,
+    regex_json: Path | None = None,
     dry_run: bool = False,
     verbose: bool = False,
 ) -> None:
