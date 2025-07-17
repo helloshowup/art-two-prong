@@ -165,11 +165,35 @@ def generate_images_from_docs_cmd(
     size: str = typer.Option("1024x1024", "--size", help="Image size, e.g. 1024x1024"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """Generate images based on Markdown files under *docs_folder*."""
+    """Generate images based on Markdown/JSON files under *docs_folder*."""
     entries = parse_markdown_image_entries(docs_folder)
+
+    for json_path in docs_folder.glob("*.json"):
+        try:
+            data = json.load(json_path.open("r", encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise typer.BadParameter(f"Invalid JSON in {json_path}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise typer.BadParameter(f"{json_path} does not contain an object")
+        if not data.get("expected_filename") or not data.get("summary"):
+            raise typer.BadParameter(
+                f"{json_path} missing expected_filename or summary"
+            )
+        entries.append(data)
+
     for entry in entries:
         filename = entry["expected_filename"]
-        prompt = entry["summary"]
+        if entry.get("alt_text"):
+            prompt = (
+                f"Create a file named `{entry['expected_filename']}` with alt text \"{entry['alt_text']}\".\n"
+                f"Description:\n{entry['summary']}"
+            )
+            if entry.get("lesson_number") or entry.get("lesson_title"):
+                prompt += (
+                    f"\n(Lesson {entry.get('lesson_number')}: {entry.get('lesson_title')})"
+                )
+        else:
+            prompt = entry["summary"]
         if verbose:
             typer.echo(f"Generating {filename}")
         image_bytes = generate_image(prompt, model=model, size=size)
