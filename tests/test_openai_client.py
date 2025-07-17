@@ -16,11 +16,15 @@ def test_generate_image(monkeypatch):
 
     captured_kwargs = {}
 
-    def dummy_create(**kwargs):
-        captured_kwargs.update(kwargs)
-        return {"data": [{"b64_json": b64}]}
+    class DummyResp:
+        def __init__(self, data):
+            self.data = data
 
-    monkeypatch.setattr(oc.openai.Image, "create", dummy_create)
+    def dummy_generate(**kwargs):
+        captured_kwargs.update(kwargs)
+        return DummyResp([type("Node", (), {"b64_json": b64})])
+
+    monkeypatch.setattr(oc._client.images, "generate", dummy_generate)
 
     result = oc.generate_image("a prompt", model="m")
 
