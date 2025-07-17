@@ -220,3 +220,4 @@ __marimo__/
 bryce launch ref.txt
 /Converted to json files already
 *.py
+*.png
