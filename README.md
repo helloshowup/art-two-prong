@@ -1,6 +1,9 @@
 # md-batch-gpt
 
-Poetry-managed Python 3.11 project.
+Utilities for generating visual art at scale. This project grew out of an
+earlier automation approach known as the **two prong** workflow and is focused
+on producing image assets from structured prompts. Poetry-managed Python 3.11
+project.
 
 ## Installation
 
@@ -18,13 +21,14 @@ Run the batch processor against the `docs` folder using the provided prompts:
 poetry run mdgpt run docs --prompts prompts/first.txt prompts/second.txt
 ```
 
-Generate images from JSON description files. Each object in the JSON array must
-include an `expected_filename` and a `summary` field. `summary` provides the
-prompt text while `expected_filename` specifies the output file name; any other
-keys (for example `alt_text`) are ignored.
+Generate images from JSON description files. Each entry must include
+`expected_filename` and `summary` keys. Any additional fields are ignored.
+The prompt text comes from `summary`, and the resulting image is saved to
+`expected_filename`.
+
 ```bash
-poetry run mdgpt generate-images images.json --model gpt-image-1 --size 1024x1024
-```
+poetry run mdgpt generate-images images1.json images2.json --model gpt-image-1 --size 1024x1024
+
 
 ## .env Setup
 
