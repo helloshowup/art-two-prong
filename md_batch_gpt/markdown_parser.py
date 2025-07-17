@@ -17,7 +17,7 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
     :func:`iter_markdown_files` to locate ``*.md`` files under *folder*.
     """
     entries: List[Dict[str, str]] = []
-    for md_path in iter_markdown_files(folder):
+    for md_path in sorted(iter_markdown_files(folder)):
         text = md_path.read_text(encoding="utf-8", errors="replace")
         stripped = text.lstrip()
         if stripped.startswith("---"):

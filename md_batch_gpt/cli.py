@@ -170,16 +170,21 @@ def generate_images_from_docs_cmd(
 
     for json_path in docs_folder.glob("*.json"):
         try:
-            data = json.load(json_path.open("r", encoding="utf-8"))
+            raw = json.loads(
+                json_path.read_text(encoding="utf-8", errors="replace")
+            )
         except json.JSONDecodeError as exc:
             raise typer.BadParameter(f"Invalid JSON in {json_path}: {exc}") from exc
-        if not isinstance(data, dict):
-            raise typer.BadParameter(f"{json_path} does not contain an object")
-        if not data.get("expected_filename") or not data.get("summary"):
-            raise typer.BadParameter(
-                f"{json_path} missing expected_filename or summary"
-            )
-        entries.append(data)
+
+        specs = raw if isinstance(raw, list) else [raw]
+        for spec in specs:
+            if not isinstance(spec, dict):
+                raise typer.BadParameter(f"{json_path} entry is not an object")
+            if not spec.get("expected_filename") or not spec.get("summary"):
+                raise typer.BadParameter(
+                    f"{json_path} missing expected_filename or summary"
+                )
+            entries.append(spec)
 
     for entry in entries:
         filename = entry["expected_filename"]
