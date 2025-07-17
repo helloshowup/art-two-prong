@@ -18,9 +18,12 @@ Run the batch processor against the `docs` folder using the provided prompts:
 poetry run mdgpt run docs --prompts prompts/first.txt prompts/second.txt
 ```
 
-Generate images from JSON description files:
+Generate images from JSON description files. Each object in the JSON array must
+include an `expected_filename` and a `summary` field. `summary` provides the
+prompt text while `expected_filename` specifies the output file name; any other
+keys (for example `alt_text`) are ignored.
 ```bash
-poetry run mdgpt generate-images images1.json images2.json --model dall-e-3 --size 1024x1024
+poetry run mdgpt generate-images images.json --model gpt-image-1 --size 1024x1024
 ```
 
 ## .env Setup
