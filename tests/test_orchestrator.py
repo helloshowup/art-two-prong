@@ -148,3 +148,25 @@ def test_process_folder_invalid_bytes(monkeypatch, tmp_path: Path):
 
     # Replacement character should appear for invalid bytes
     assert md.read_text(encoding="utf-8") == "A\ufffdB[p\ufffd]"
+
+
+def test_process_folder_no_markdown(monkeypatch, tmp_path: Path, capsys):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+    orch = import_orchestrator()
+
+    send_calls = []
+    write_calls = []
+
+    monkeypatch.setattr(orch, "send_prompt", lambda *a, **k: send_calls.append(True))
+    monkeypatch.setattr(orch, "write_atomic", lambda *a, **k: write_calls.append(True))
+
+    (tmp_path / "a.txt").write_text("A")
+    p1 = tmp_path / "p1.txt"
+    p1.write_text("p1")
+
+    orch.process_folder(tmp_path, [p1], model="m")
+
+    assert send_calls == []
+    assert write_calls == []
+    out = capsys.readouterr().out
+    assert f"No markdown files found under {tmp_path}" in out
