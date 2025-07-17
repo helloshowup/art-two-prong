@@ -26,16 +26,23 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
                 raise ValueError(f"{md_path} missing closing YAML delimiter")
             fm_text = parts[1]
             data = yaml.safe_load(fm_text) or {}
-            if not isinstance(data, dict):
-                raise ValueError(f"{md_path} front matter is not a mapping")
-            filename = data.get("expected_filename")
-            summary = data.get("summary")
-            if not filename or not summary:
+            if isinstance(data, dict) and data.get("expected_filename") and data.get(
+                "summary"
+            ):
+                entries.append(
+                    {
+                        "expected_filename": data["expected_filename"],
+                        "summary": data["summary"],
+                    }
+                )
+                continue
+            if isinstance(data, dict):
+                # Detected YAML front matter but required keys missing
                 raise ValueError(
                     f"{md_path} front matter missing expected_filename or summary"
                 )
-            entries.append({"expected_filename": filename, "summary": summary})
-            continue
+            # Not valid YAML front matter; fall through treating remainder as text
+            stripped = parts[2].lstrip()
 
         json_text = stripped
         if json_text.startswith("```"):
