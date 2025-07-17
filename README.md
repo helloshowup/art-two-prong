@@ -15,7 +15,7 @@ poetry install
 Run the batch processor against the `docs` folder using the provided prompts:
 
 ```bash
-poetry run mdgpt run --input-dir docs --prompts prompts/first.txt prompts/second.txt
+poetry run mdgpt run docs --prompts prompts/first.txt prompts/second.txt
 ```
 
 ## .env Setup
