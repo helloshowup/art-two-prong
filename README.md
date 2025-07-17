@@ -28,7 +28,7 @@ The prompt text comes from `summary`, and the resulting image is saved to
 
 ```bash
 poetry run mdgpt generate-images images1.json images2.json --model gpt-image-1 --size 1024x1024
-```
+
 
 ## .env Setup
 
