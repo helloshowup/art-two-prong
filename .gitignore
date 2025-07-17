@@ -218,3 +218,5 @@ __marimo__/
 /prompts
 /prompts not used
 bryce launch ref.txt
+/Converted to json files already
+*.py
