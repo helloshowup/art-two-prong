@@ -220,3 +220,37 @@ def test_generate_images_command(monkeypatch, tmp_path: Path):
     prompts = [call[0] for call in calls]
     assert prompts == ["A", "B", "C"]
     assert all(call[1:] == ("m", "256x256") for call in calls)
+
+
+def test_generate_images_extra_fields(monkeypatch, tmp_path: Path):
+    """Extra fields in the JSON entries should be ignored."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    captured: list[tuple[str, str]] = []
+
+    def fake_generate_image(
+        prompt: str, model: str = "dall-e-3", size: str = "1024x1024"
+    ):
+        captured.append((prompt, model))
+        return b"imgbytes"
+
+    monkeypatch.setattr(cli, "generate_image", fake_generate_image)
+
+    data = (
+        '[{"expected_filename": "img.png", "summary": "An image", "alt_text": "extra"}]'
+    )
+    json_file = tmp_path / "entry.json"
+    json_file.write_text(data)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            cli.app, ["generate-images", str(json_file), "--model", "gpt-image-1"]
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert Path("img.png").read_bytes() == b"imgbytes"
+
+    assert captured == [("An image", "gpt-image-1")]
