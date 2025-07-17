@@ -26,6 +26,9 @@ def process_folder(
         Path(p).read_text(encoding="utf-8", errors="replace") for p in prompt_paths
     ]
     files = list(iter_markdown_files(folder))
+    if not files:
+        print(f"No markdown files found under {folder}")
+        return
     if dry_run:
         for f in files:
             print(f)
