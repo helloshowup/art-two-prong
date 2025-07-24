@@ -13,6 +13,9 @@ Install the project's dependencies using Poetry:
 poetry install
 ```
 
+This will install all required libraries, including `requests`, which is used to
+download generated images from the OpenAI API.
+
 ## Usage
 
 Run the batch processor against the `docs` folder using the provided prompts:
