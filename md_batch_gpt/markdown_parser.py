@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import List, Dict
 import yaml
 import json
+import re
+
+JSON_BLOCK_RE = re.compile(r"```(?:json)?\n(.*?)```", re.DOTALL)
 
 from .file_io import iter_markdown_files
 
@@ -13,8 +16,9 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
 
     Each Markdown file may either begin with YAML front matter containing
     ``expected_filename`` and ``summary`` keys or contain a JSON block with one
-    or more such entries. Any additional fields are ignored. The function uses
-    :func:`iter_markdown_files` to locate ``*.md`` files under *folder*.
+    or more such entries. Additional fields are preserved. The function uses
+    :func:`iter_markdown_files` to locate ``*.md`` files under *folder*. JSON
+    blocks may appear anywhere in the document.
     """
     entries: List[Dict[str, str]] = []
     for md_path in sorted(iter_markdown_files(folder)):
@@ -26,15 +30,12 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
                 raise ValueError(f"{md_path} missing closing YAML delimiter")
             fm_text = parts[1]
             data = yaml.safe_load(fm_text) or {}
-            if isinstance(data, dict) and data.get("expected_filename") and data.get(
-                "summary"
+            if (
+                isinstance(data, dict)
+                and data.get("expected_filename")
+                and data.get("summary")
             ):
-                entries.append(
-                    {
-                        "expected_filename": data["expected_filename"],
-                        "summary": data["summary"],
-                    }
-                )
+                entries.append(data)
                 continue
             if isinstance(data, dict):
                 # Detected YAML front matter but required keys missing
@@ -45,7 +46,10 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
             stripped = parts[2].lstrip()
 
         json_text = stripped
-        if json_text.startswith("```"):
+        match = JSON_BLOCK_RE.search(json_text)
+        if match:
+            json_text = match.group(1)
+        elif json_text.startswith("```"):
             first_nl = json_text.find("\n")
             if first_nl == -1:
                 raise ValueError(f"{md_path} malformed JSON code block")
@@ -54,6 +58,8 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
             if end == -1:
                 raise ValueError(f"{md_path} missing closing code block")
             json_text = json_text[:end]
+        else:
+            json_text = json_text.strip()
         try:
             data = json.loads(json_text)
         except json.JSONDecodeError as exc:
@@ -73,5 +79,5 @@ def parse_markdown_image_entries(folder: Path) -> List[Dict[str, str]]:
                 raise ValueError(
                     f"{md_path} JSON entry {idx} missing expected_filename or summary"
                 )
-            entries.append({"expected_filename": filename, "summary": summary})
+            entries.append(item)
     return entries
