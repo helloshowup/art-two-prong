@@ -28,4 +28,5 @@ def clean_file_wrappers(folder_path):
 
 
 # 🔧 Replace with your folder name
-clean_file_wrappers("./docs")
+if __name__ == "__main__":
+    clean_file_wrappers("./docs")

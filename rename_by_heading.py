@@ -47,4 +47,5 @@ def rename_markdown_files_in_folder(folder_path):
 
 
 # 🔧 Replace this path with your markdown folder
-rename_markdown_files_in_folder("./docs")
+if __name__ == "__main__":
+    rename_markdown_files_in_folder("./docs")
