@@ -170,3 +170,26 @@ def test_process_folder_no_markdown(monkeypatch, tmp_path: Path, capsys):
     assert write_calls == []
     out = capsys.readouterr().out
     assert f"No markdown files found under {tmp_path}" in out
+
+
+def test_process_folder_regex_json(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+    orch = import_orchestrator()
+
+    def fake_send_prompt(prompt: str, content: str, model: str, max_tokens: int | None = None) -> str:
+        return f"{content}[{prompt}]"
+
+    monkeypatch.setattr(orch, "send_prompt", fake_send_prompt)
+
+    md = tmp_path / "a.md"
+    md.write_text("foo")
+
+    prompt = tmp_path / "p.txt"
+    prompt.write_text("p")
+
+    regex = tmp_path / "r.json"
+    regex.write_text('{"foo": "bar"}')
+
+    orch.process_folder(tmp_path, [prompt], model="m", regex_json=regex)
+
+    assert md.read_text(encoding="utf-8") == "bar[p]"

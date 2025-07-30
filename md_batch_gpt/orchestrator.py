@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List
+import json
+import re
 
 from .file_io import iter_markdown_files, write_atomic
 from .openai_client import send_prompt
@@ -35,10 +37,23 @@ def process_folder(
         print(f"Prompt count: {len(prompts)}")
         return
 
+    patterns: list[tuple[re.Pattern[str], str]] = []
+    if regex_json:
+        try:
+            raw = json.loads(regex_json.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:  # pragma: no cover - invalid input
+            raise typer.BadParameter(f"Invalid JSON in {regex_json}: {exc}") from exc
+        if not isinstance(raw, dict):  # pragma: no cover - wrong structure
+            raise typer.BadParameter(f"{regex_json} must contain an object mapping patterns to replacements")
+        for pat, repl in raw.items():
+            patterns.append((re.compile(pat), str(repl)))
+
     for md_file in files:
         text = md_file.read_text(encoding="utf-8", errors="replace")
         for idx, prompt in enumerate(prompts):
             if verbose:
                 typer.echo(f"{md_file}: pass {idx + 1}/{len(prompts)}")
             text = send_prompt(prompt, text, model, max_tokens)
-            write_atomic(md_file, text)
+            for pat, repl in patterns:
+                text = pat.sub(repl, text)
+        write_atomic(md_file, text)
