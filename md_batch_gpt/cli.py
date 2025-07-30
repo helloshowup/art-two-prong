@@ -207,5 +207,25 @@ def generate_images_from_docs_cmd(
             typer.echo(f"Wrote {filename}")
 
 
+@app.command("docs")
+def docs_cmd(
+    docs_folder: Path = typer.Argument(
+        ..., exists=True, file_okay=False, dir_okay=True
+    ),
+    model: str = typer.Option(
+        "dall-e-3", "--model", help="OpenAI model for image generation"
+    ),
+    size: str = typer.Option("1024x1024", "--size", help="Image size, e.g. 1024x1024"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Alias for :func:`generate_images_from_docs_cmd`."""
+    generate_images_from_docs_cmd(
+        docs_folder,
+        model=model,
+        size=size,
+        verbose=verbose,
+    )
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

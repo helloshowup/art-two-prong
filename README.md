@@ -54,6 +54,12 @@ summary: An example scene
 poetry run mdgpt generate-images-from-docs docs --model gpt-image-1 --size 1024x1024
 ```
 
+The same functionality is available via the shorter `docs` alias:
+
+```bash
+poetry run mdgpt docs docs --model gpt-image-1 --size 1024x1024
+```
+
 
 ## .env Setup
 
