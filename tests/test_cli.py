@@ -493,3 +493,45 @@ def test_generate_images_from_docs_json_list(monkeypatch, tmp_path: Path):
     assert prompts == ["A", "B"]
     assert all(c[1:] == ("m", "256x256") for c in calls)
 
+
+def test_docs_alias(monkeypatch, tmp_path: Path):
+    """The `docs` command should behave like `generate-images-from-docs`."""
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy")
+
+    cli = import_cli()
+
+    called = {}
+
+    def fake_cmd(docs_folder: Path, model: str = "dall-e-3", size: str = "1024x1024", verbose: bool = False) -> None:
+        called["folder"] = docs_folder
+        called["model"] = model
+        called["size"] = size
+        called["verbose"] = verbose
+
+    monkeypatch.setattr(cli, "generate_images_from_docs_cmd", fake_cmd)
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.app,
+        [
+            "docs",
+            str(docs),
+            "--model",
+            "m",
+            "--size",
+            "256x256",
+            "--verbose",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert called == {
+        "folder": docs,
+        "model": "m",
+        "size": "256x256",
+        "verbose": True,
+    }
+
